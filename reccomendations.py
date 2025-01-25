@@ -30,11 +30,40 @@ def sumMetric(cand,candIdx,allShows,liked,disliked,prioritization_factor=1,cache
 def parseToList(strArr):
 
     return json.loads(strArr);
-def reccomendaitons(args):
+
+
+def sample(args):
+
+    with open(args['fileName'],'r') as f:
+        allShows=[]
+        reader=csv.reader(f);
+        header=[]
+        probs=[]
+        for (i,show) in enumerate(reader):
+
+            if (i==0):
+                header=show
+            else:
+                
+                probs.append(float(show[1]))
+                show[3]=parseToList(show[3])
+                allShows.append(show);
+        
+        probs=np.array(probs)
+        probs_exp=np.exp(probs);
+        probs=probs_exp/np.sum(probs_exp)
+        n_samples=len(probs);
+
+        choice=np.random.choice(n_samples,1,p=probs)[0];
+
+        return choice
 
     
+def reccomendations(args):
+    print("HELLO");
+    
     fileName=args['fileName']
-    probs=[]
+    
     allShows=[]
     with open(fileName,'r') as f:
 
@@ -46,42 +75,30 @@ def reccomendaitons(args):
                 header=show
             else:
                 
-                probs.append(float(show[1]))
                 show[3]=parseToList(show[3])
                 allShows.append(show);
-        probs=np.array(probs)
-        probs_exp=np.exp(probs);
-        probs=probs_exp/np.sum(probs_exp)
-        liked=[]
-        disliked=[]
-        for i in range(100):
-            n_samples=len(probs)
-            choice=np.random.choice(n_samples,1,p=probs)[0];
-            print(f"Have you watched {allShows[choice][0]} and did you like it? (0-Watched it and liked, 1-Watched and didn't like, 2-Never watched/I don't know)?")
-            
-            ans=int(input())
-            
-            
-            if (ans==0):
+        
+        choice=args['choice']
+        liked=args['liked']
+        disliked=args['disliked']
 
-                liked.append(choice)
-            if (ans==1):
-                disliked.append(choice)
-            currentCandidates=[]
-            
-            for (candIdx, cand) in enumerate(allShows):
-                if (candIdx in liked):
-                    continue
-                curr_dist=sumMetric(cand,candIdx,allShows,liked,disliked)
+        
+    
+        currentCandidates=[]
+        
+        for (candIdx, cand) in enumerate(allShows):
+            if (candIdx in liked):
+                continue
+            curr_dist=sumMetric(cand,candIdx,allShows,liked,disliked)
 
+            
                 
-                 
-                currentCandidates.append([curr_dist,candIdx])
-
-            currentCandidates.sort(key=lambda x: x[0])
-            topShows=currentCandidates[0:args["nBest"]]
-            topShows=[allShows[x[1]][0] for x in topShows]
-            print(f"Your top show reccomendations are: {topShows}")
+            currentCandidates.append([curr_dist,candIdx])
+            print(candIdx)
+        currentCandidates.sort(key=lambda x: x[0])
+        topShows=currentCandidates[0:args["nBest"]]
+        topShows=[allShows[x[1]][0] for x in topShows]
+        print(f"Your top show reccomendations are: {topShows}")
 
             
                     
@@ -95,7 +112,7 @@ if __name__=="__main__":
         'fileName': 'embeddings.csv',
         'nBest': 10
     }
-    reccomendaitons(args);
+    reccomendations(args);
 
 
 
