@@ -2,9 +2,13 @@ from flask import Flask
 from flask import request
 import json
 import requests
-from reccomendations import sample, reccomendations
+from reccomendations import sample, reccomendations,findIMDBID
+from flask_cors import CORS
 app = Flask(__name__)
 
+
+app = Flask(__name__)
+CORS(app) 
 @app.route("/")
 def hello_world():
     return {'data':[1,2,3]}
@@ -33,8 +37,9 @@ def top10():
                 'choice': choice,
                 'nBest':10
             }
-            reccomendations(args)
-            return "200"
+            output=reccomendations(args);
+            
+            return json.dumps(output) ;
 
 @app.route("/preferences",methods=['GET','POST'])
 def preferences():
@@ -46,12 +51,12 @@ def preferences():
 
     if (request.method=='POST'):
 
-        liked=request.args['liked']
-        index=int(request.args['index'])
+        res=request.get_json();
+        liked=res.get('liked');
         data={}
         with open("data.json",'r') as f:
             data=json.load(f);
-        
+        index=int(data['choice'])
         data[liked].append(index);
         
         with open("data.json",'w') as f:
@@ -66,5 +71,41 @@ def getSampleShow():
     args={
         'fileName': 'embeddings.csv'
     }
+    id,title=sample(args)
+    data={}
+    with open("data.json",'r') as f:
+        data=json.load(f);
+    
+    data['choice']=id;
 
-    return str(sample(args));
+    with open("data.json",'w') as f:
+        json.dump(data,f)
+    return json.dumps([id,title])
+
+
+@app.route('/clear')
+
+def clear():
+    cleared={
+        'liked':[],
+        'disliked':[],
+        'choice':""
+    }
+    with open('data.json','w') as f:
+        
+        json.dump(cleared,f) 
+    
+    return "200"
+
+@app.route('/getID')
+
+def getID():
+
+    with open('data.json','r') as f:
+        data=json.load(f)
+        choice=int(data['choice'])
+        args={
+            'fileName': 'embeddings.csv',
+            'choice':choice
+        }
+        return str(findIMDBID(args))

@@ -1,14 +1,22 @@
 import csv
 import numpy as np
 import json 
+import pandas as pd;
 
-def distanceMetric(cand,candIdx, allShows, liked):
+def findIMDBID(args):
+    fileName=args['fileName']
+    choice=args['choice']
+
+    df = pd.read_csv(fileName)
+    id_value = df.loc[choice, 'ID']
+    return json.dumps([id_value]);
+def distanceMetric(cand,candIdx, allShows, liked,disliked):
     curr_dist=float('inf')
 
     for showIdx in liked:
         
-        arr1=np.array(allShows[showIdx][3]);
-        arr2=np.array(cand[3]);
+        arr1=np.array(allShows[showIdx][4]);
+        arr2=np.array(cand[4]);
         
         curr_dist=min(curr_dist,np.linalg.norm(arr1-arr2)); 
     return curr_dist
@@ -18,8 +26,8 @@ def sumMetric(cand,candIdx,allShows,liked,disliked,prioritization_factor=1,cache
     if len(disliked)+len(liked)==0:
         return float('inf')
     if (cachedSum==None):
-        likedNames=[allShows[i][3] for i in liked]
-        dislikedNames=[allShows[i][3] for i in disliked]
+        likedNames=[allShows[i][4] for i in liked]
+        dislikedNames=[allShows[i][4] for i in disliked]
         
         cachedSum=(prioritization_factor*np.sum(np.array(likedNames),axis=0) - np.sum(np.array(disliked),axis=0))/(len(disliked)+len(liked))
 
@@ -32,74 +40,44 @@ def parseToList(strArr):
     return json.loads(strArr);
 
 
+
+
 def sample(args):
-
-    with open(args['fileName'],'r') as f:
-        allShows=[]
-        reader=csv.reader(f);
-        header=[]
-        probs=[]
-        for (i,show) in enumerate(reader):
-
-            if (i==0):
-                header=show
-            else:
-                
-                probs.append(float(show[1]))
-                show[3]=parseToList(show[3])
-                allShows.append(show);
-        
-        probs=np.array(probs)
-        probs_exp=np.exp(probs);
-        probs=probs_exp/np.sum(probs_exp)
-        n_samples=len(probs);
-
-        choice=np.random.choice(n_samples,1,p=probs)[0];
-
-        return choice
+    df = pd.read_csv(args['fileName'], header=None, skiprows=1)  # Skip the first row which is likely the header
+    probs = pd.to_numeric(df[1], errors='coerce').values.astype(np.float32)  # Convert to numeric, coercing errors to NaN
+    df[4] = df[4].apply(parseToList)
+    probs_exp = np.exp(probs)
+    probs_normalized = probs_exp / probs_exp.sum()
+    choice = np.random.choice(len(probs), p=probs_normalized)
+    return [str(choice), df.iloc[choice, 0]]
 
     
+
 def reccomendations(args):
-    print("HELLO");
+    fileName = args['fileName']
+    nBest = args['nBest']
+    liked = set(args['liked'])  
+    disliked = set(args['disliked'])
+
+    df = pd.read_csv(fileName)
+    df.iloc[:, 4] = df.iloc[:, 4].apply(parseToList)  # Apply parseToList on the 4th column
     
-    fileName=args['fileName']
+    allShows = df.values  # Convert DataFrame to NumPy array for faster access
+    currentCandidates = []
     
-    allShows=[]
-    with open(fileName,'r') as f:
-
-        reader=csv.reader(f);
-        header=[]
-        for (i,show) in enumerate(reader):
-
-            if (i==0):
-                header=show
-            else:
-                
-                show[3]=parseToList(show[3])
-                allShows.append(show);
-        
-        choice=args['choice']
-        liked=args['liked']
-        disliked=args['disliked']
-
-        
+    for candIdx, cand in enumerate(allShows):
+        if candIdx in liked:
+            continue
+        curr_dist = distanceMetric(cand, candIdx, allShows, liked, disliked)
+        currentCandidates.append([curr_dist, candIdx])
     
-        currentCandidates=[]
-        
-        for (candIdx, cand) in enumerate(allShows):
-            if (candIdx in liked):
-                continue
-            curr_dist=sumMetric(cand,candIdx,allShows,liked,disliked)
-
-            
-                
-            currentCandidates.append([curr_dist,candIdx])
-            print(candIdx)
-        currentCandidates.sort(key=lambda x: x[0])
-        topShows=currentCandidates[0:args["nBest"]]
-        topShows=[allShows[x[1]][0] for x in topShows]
-        print(f"Your top show reccomendations are: {topShows}")
-
+    # Sort the candidates based on distance (distances are in the first element of the sublists)
+    currentCandidates.sort(key=lambda x: x[0])
+    
+    # Get top N best shows
+    topShows = [allShows[x[1]][0] for x in currentCandidates[:nBest]]
+    
+    return topShows
             
                     
 
