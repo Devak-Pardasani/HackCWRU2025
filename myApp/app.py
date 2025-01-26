@@ -1,18 +1,17 @@
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask import request
 import json
 import requests
 from reccomendations import sample, reccomendations,findIMDBID
 from flask_cors import CORS
-app = Flask(__name__)
-
-
+import os 
 app = Flask(__name__)
 CORS(app) 
 @app.route("/")
-def hello_world():
-    return {'data':[1,2,3]}
 
+def home():
+    # Serve the index.html file from the root directory of the project
+    return send_from_directory(os.getcwd(), "index.html")
 
 @app.route("/top10",methods=['GET'])
 
@@ -109,3 +108,5 @@ def getID():
             'choice':choice
         }
         return str(findIMDBID(args))
+
+

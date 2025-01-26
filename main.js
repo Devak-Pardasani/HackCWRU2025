@@ -24,15 +24,19 @@ async function fetchImage(id){
             const poster_path=res['movie_results'][0].poster_path
        
             src="https://image.tmdb.org/t/p/w500/"+poster_path
-            $("#imageDiv").empty()
+            $('#imageDiv').empty();
             console.log(src);
             var image=document.createElement('img')
             image.src=src 
             image.alt="Imagine a poster here..."
             $("#imageDiv").append(image);
     })
-          .catch(err => {console.error(err)
-          $("#imageDiv").empty()});
+          .catch(
+            err => {console.error(err)
+            const noImage=document.createElement('h1');
+            noImage.textContent="No Image Found :("
+            $("#imageDiv").append(noImage);
+          });
 
 
         
@@ -47,7 +51,6 @@ async function fetchImage(id){
 async function loadImage(){
 
     const url="http://127.0.0.1:"+port+"/sample"
-    console.log(url);
     const response = await fetch(url);
     try{
     
@@ -56,18 +59,18 @@ async function loadImage(){
     }
 
     const json = response.json();
-    json.then(function(result) {
+    json.then(async function(result) {
     
         $("#movieTitle").remove();
-        console.log(result);
-        
         const element=document.createElement('h1');
         element.textContent=result[1]
         element.id="movieTitle"
         $(".image-area").prepend(element)
         
-        console.log(fetchImage());
+        await fetchImage();
     })
+    
+
 }
     catch (error) {
         console.error(error.message);
@@ -76,11 +79,41 @@ async function loadImage(){
 
 
 }
+const turnButtonsOn = (arr) => {
+
+    console.log(arr);
+
+    arr.forEach(element => {
+        $(".icon-container").append(element)
+    });
+}
+
+const turnButtonsOff = () => {
+    const arr=Array.from($('.icon-container').children());
+    $('.icon-container').empty();
+    
+    return arr;
+
+
+    
+}
 async function processClick(){
     
     const iconId = event.target.id;
+    const arr=turnButtonsOff();
+    $("#movieTitle").remove();
+    $("#imageDiv").empty();
+    const waitingElement=document.createElement('h1')
+    waitingElement.id="movieTitle"
+    const imageWaiting=document.createElement('h1')
+    imageWaiting.textContent="Image Uploading..."
+    waitingElement.textContent="Title Uploading..."
+    $('.image-area').prepend(waitingElement);
+    $("#imageDiv").append(imageWaiting);
     if (iconId=="question"){
         loadImage()
+        turnButtonsOn(arr)
+        
         return;
     }
     const url = "http://127.0.0.1:" + port + "/preferences";
@@ -92,7 +125,9 @@ async function processClick(){
     });
 
     if (response.status==200){
-        loadImage()
+        loadImage().then(()=>{
+            turnButtonsOn(arr)
+        })
         const url2="http://127.0.0.1:" + port + "/top10";
         const response2=await fetch(url2);
         const json=response2.json();
@@ -108,6 +143,7 @@ async function processClick(){
             }
         
         })
+        
         return;
 
         
@@ -132,5 +168,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 
 window.onload = () => {
     loadImage();
+    
+
     clearData();
 }
