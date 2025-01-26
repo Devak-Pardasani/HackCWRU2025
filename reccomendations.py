@@ -43,12 +43,7 @@ def parseToList(strArr):
 
 
 def sample(args):
-    with open(args['fileName'],'r') as f:
-        reader=csv.reader(f);
-        for (i,r) in enumerate(reader):
-            print(r);
-            if (i>100):
-                break;
+
 
     df = pd.read_csv(args['fileName'], header=None, skiprows=1)  # Skip the first row which is likely the header
     probs = pd.to_numeric(df[1], errors='coerce').values.astype(np.float32)  # Convert to numeric, coercing errors to NaN
