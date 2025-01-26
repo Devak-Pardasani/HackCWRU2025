@@ -11,8 +11,7 @@ CORS(app)
 
 def home():
     # Serve the index.html file from the root directory of the project
-    return send_from_directory(os.getcwd(), "index.html")
-
+    return [1,2,3]
 @app.route("/top10",methods=['GET'])
 
 def top10():

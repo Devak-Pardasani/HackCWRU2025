@@ -32,7 +32,10 @@ async function fetchImage(id){
             $("#imageDiv").append(image);
     })
           .catch(
-            err => {console.error(err)
+            
+            err => {
+                $('#imageDiv').empty();
+                console.error(err)
             const noImage=document.createElement('h1');
             noImage.textContent="No Image Found :("
             $("#imageDiv").append(noImage);
